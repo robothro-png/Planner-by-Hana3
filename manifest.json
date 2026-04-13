@@ -1,5 +1,5 @@
 {
-  "name": "Planner App",
+  "name": "Planner PWA",
   "short_name": "Planner",
   "start_url": ".",
   "display": "standalone",
