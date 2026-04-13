@@ -32,7 +32,6 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
   overflow:hidden;
 }
 
-/* IMAGE LAYER */
 .bg-img{
   position:absolute;
   inset:0;
@@ -42,10 +41,7 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
   z-index:0;
 }
 
-.day *{
-  position:relative;
-  z-index:2;
-}
+.day *{position:relative;z-index:2;}
 
 .date{
   position:absolute;
@@ -53,23 +49,6 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
   right:-10px;
   font-size:120px;
   color:#0002;
-}
-
-.dots{
-  position:absolute;
-  bottom:5px;
-  left:5px;
-  right:5px;
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-}
-
-.event-box{
-  font-size:12px;
-  padding:2px 6px;
-  border-radius:8px;
-  color:#fff;
 }
 
 #popup{
@@ -114,14 +93,20 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
 const calendar=document.getElementById("calendar");
 const monthYear=document.getElementById("monthYear");
 
+/* 🔥 FIX: ต้องประกาศให้ครบ */
+const popup=document.getElementById("popup");
+const noteInput=document.getElementById("noteInput");
+const imgInput=document.getElementById("imgInput");
+
 let currentDate=new Date();
 let selectedKey="";
+
 let data=JSON.parse(localStorage.getItem("plannerData")||"{}");
 
 const thaiDays=["อา","จ","อ","พ","พฤ","ศ","ส"];
 const thaiMonths=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 
-/* 🔥 FIX KEY FUNCTION */
+/* KEY */
 function makeKey(y,m,d){
 return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
@@ -135,9 +120,7 @@ let m=currentDate.getMonth();
 
 monthYear.innerText=thaiMonths[m]+" "+(y+543);
 
-let lastDay=new Date(y,m+1,0).getDate();
-
-for(let i=1;i<=lastDay;i++){
+for(let i=1;i<=new Date(y,m+1,0).getDate();i++){
 
 let key=makeKey(y,m,i);
 
@@ -147,7 +130,6 @@ box.className="day";
 box.innerHTML=`
 <div>${thaiDays[new Date(y,m,i).getDay()]}</div>
 <div class="date">${i}</div>
-<div class="dots"></div>
 `;
 
 box.onclick=()=>{
@@ -157,7 +139,7 @@ openPopup();
 
 calendar.appendChild(box);
 
-/* 🔥 IMAGE FIX (ชัวร์สุด) */
+/* IMAGE */
 if(data[key]?.img){
 let img=document.createElement("img");
 img.className="bg-img";
@@ -176,7 +158,6 @@ renderCalendar();
 /* POPUP */
 function openPopup(){
 popup.style.display="flex";
-
 noteInput.value=data[selectedKey]?.note||"";
 }
 
@@ -185,7 +166,7 @@ function closePopup(){
 popup.style.display="none";
 }
 
-/* IMAGE UPLOAD 🔥 FIX 100% */
+/* IMAGE UPLOAD */
 imgInput.onchange=e=>{
 let file=e.target.files[0];
 if(!file)return;
