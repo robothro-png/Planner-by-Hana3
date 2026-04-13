@@ -7,8 +7,6 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Itim&display=swap" rel="stylesheet">
 
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ffd6e0">
 
 <style>
@@ -44,12 +42,30 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
   overflow:hidden;
 }
 
-.bg-img{position:absolute;width:100%;height:100%;object-fit:cover;z-index:0;}
+.bg-img{
+  position:absolute;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:0;
+}
 
-.date{position:absolute;bottom:-10px;right:-10px;font-size:120px;color:#0002;z-index:1;}
-.day-name{position:absolute;top:8px;left:10px;font-weight:bold;z-index:2;}
+.date{
+  position:absolute;
+  bottom:-10px;
+  right:-10px;
+  font-size:120px;
+  color:#0002;
+  z-index:1;
+}
 
-.today{border:3px solid #000;}
+.day-name{
+  position:absolute;
+  top:8px;
+  left:10px;
+  font-weight:bold;
+  z-index:2;
+}
 
 .saturday .date{color:#8B0000;}
 
@@ -168,7 +184,7 @@ let d=new Date(y,m,i);
 let box=document.createElement("div");
 box.className="day";
 
-if(d.getDay()==0) box.classList.add("saturday");
+if(d.getDay()==6) box.classList.add("saturday");
 
 box.innerHTML=`
 <div class="day-name">${thaiDays[d.getDay()]}</div>
@@ -183,6 +199,16 @@ openPopup();
 };
 
 calendar.appendChild(box);
+
+// 🔥 FIX: render image ในหน้าแรก
+if(data[key] && data[key].img){
+let img=document.createElement("img");
+img.className="bg-img";
+img.src=data[key].img;
+img.style.filter=`blur(${data[key].blur||0}px)`;
+img.style.opacity=data[key].opacity||1;
+box.appendChild(img);
+}
 }
 renderDots();
 renderToday();
@@ -195,15 +221,49 @@ renderCalendar();
 
 function openPopup(){
 document.getElementById("popup").style.display="flex";
-tempData=data[selectedKey]||{events:[]};
+tempData=JSON.parse(JSON.stringify(data[selectedKey]||{events:[]}));
 
 noteInput.value=tempData.note||"";
+blurRange.value=tempData.blur||0;
+opacityRange.value=tempData.opacity||1;
+
 renderEvents();
+applyImage();
 }
 
 function closePopup(){
 document.getElementById("popup").style.display="none";
 }
+
+imgInput.onchange=e=>{
+let file=e.target.files[0];
+if(!file)return;
+
+let reader=new FileReader();
+reader.onload=ev=>{
+tempData.img=ev.target.result;
+applyImage(); // preview
+};
+reader.readAsDataURL(file);
+};
+
+function applyImage(){
+if(!selectedDay) return;
+
+let img=selectedDay.querySelector("img");
+if(!img){
+img=document.createElement("img");
+img.className="bg-img";
+selectedDay.appendChild(img);
+}
+
+img.src=tempData.img||"";
+img.style.filter=`blur(${tempData.blur||0}px)`;
+img.style.opacity=tempData.opacity||1;
+}
+
+blurRange.oninput=()=>{tempData.blur=blurRange.value;applyImage();}
+opacityRange.oninput=()=>{tempData.opacity=opacityRange.value;applyImage();}
 
 function addEvent(){
 tempData.events=tempData.events||[];
@@ -234,39 +294,38 @@ renderEvents();
 function saveAll(){
 tempData.note=noteInput.value;
 data[selectedKey]=tempData;
+
 localStorage.setItem("plannerData",JSON.stringify(data));
-closePopup();
+
 renderCalendar();
+closePopup();
 }
 
 function renderDots(){
-document.querySelectorAll(".day").forEach((d,i)=>{
-let key=currentDate.getFullYear()+"-"+currentDate.getMonth()+"-"+d.querySelector(".date").innerText;
+document.querySelectorAll(".day").forEach(d=>{
+let date=d.querySelector(".date").innerText;
+let key=currentDate.getFullYear()+"-"+currentDate.getMonth()+"-"+date;
 
-let box=document.createElement("div");
-box.className="dots";
+let container=d.querySelector(".dots");
+if(!container){
+container=document.createElement("div");
+container.className="dots";
+d.appendChild(container);
+}
 
-(d.querySelector(".dots")||box).innerHTML="";
+container.innerHTML="";
 
 (data[key]?.events||[]).forEach(e=>{
 let el=document.createElement("div");
 el.className="event-box";
 el.style.background=e.color;
 el.innerText=e.text;
-box.appendChild(el);
+container.appendChild(el);
 });
-
-if(!d.querySelector(".dots")) d.appendChild(box);
 });
 }
 
 renderCalendar();
-</script>
-
-<script>
-if("serviceWorker" in navigator){
-navigator.serviceWorker.register("service-worker.js");
-}
 </script>
 
 </body>
