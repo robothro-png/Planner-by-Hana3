@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planner App</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Itim&display=swap" rel="stylesheet">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffd6e0">
+
+<style>
+body{margin:0;font-family:'Itim';background:#f9f9f9;}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px;
+  background:#ffd6e0;
+}
+
+.header button{
+  border:none;
+  background:white;
+  border-radius:10px;
+  padding:6px 10px;
+}
+
+.calendar{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  padding:10px;
+}
+
+.day{
+  background:white;
+  border-radius:15px;
+  aspect-ratio:1/1;
+  position:relative;
+  overflow:hidden;
+}
+
+.bg-img{position:absolute;width:100%;height:100%;object-fit:cover;z-index:0;}
+
+.date{position:absolute;bottom:-10px;right:-10px;font-size:120px;color:#0002;z-index:1;}
+.day-name{position:absolute;top:8px;left:10px;font-weight:bold;z-index:2;}
+
+.today{border:3px solid #000;}
+
+.saturday .date{color:#8B0000;}
+
+.dots{
+  position:absolute;
+  bottom:5px;
+  left:5px;
+  right:5px;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  z-index:3;
+}
+
+.event-box{
+  font-size:12px;
+  padding:2px 6px;
+  border-radius:8px;
+  color:#fff;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#popup{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <button onclick="changeMonth(-1)">◀</button>
+
+  <div style="text-align:center;">
+    <div id="monthYear"></div>
+    <div id="todayDate" style="font-size:14px;"></div>
+  </div>
+
+  <button onclick="changeMonth(1)">▶</button>
+</div>
+
+<div class="calendar" id="calendar"></div>
+
+<!-- POPUP -->
+<div id="popup">
+<div style="background:white;padding:15px;border-radius:15px;width:90%;max-width:400px;">
+
+<h3>จัดการวัน</h3>
+
+<input type="file" id="imgInput"><br><br>
+เบลอ <input type="range" id="blurRange" min="0" max="10"><br>
+โปร่ง <input type="range" id="opacityRange" min="0" max="1" step="0.1">
+
+<hr>
+
+<input id="eventText" placeholder="เพิ่มนัดหมาย">
+<select id="eventColor">
+<option value="red">แดง</option>
+<option value="orange">ส้ม</option>
+<option value="green">เขียว</option>
+</select>
+<button onclick="addEvent()">เพิ่ม</button>
+
+<div id="eventList"></div>
+
+<hr>
+
+<textarea id="noteInput" placeholder="โน้ต..."></textarea>
+
+<br><br>
+<button onclick="saveAll()">บันทึก</button>
+<button onclick="closePopup()">ปิด</button>
+
+</div>
+</div>
+
+<script>
+const calendar=document.getElementById("calendar");
+const monthYear=document.getElementById("monthYear");
+const todayDate=document.getElementById("todayDate");
+
+let currentDate=new Date();
+let selectedKey="";
+let selectedDay=null;
+
+let data=JSON.parse(localStorage.getItem("plannerData")||"{}");
+let tempData={};
+let editIndex=null;
+
+const thaiDays=["อา","จ","อ","พ","พฤ","ศ","ส"];
+const thaiMonths=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+
+function renderToday(){
+let t=new Date();
+todayDate.innerText=`วันนี้ ${t.getDate()} ${thaiMonths[t.getMonth()]} ${t.getFullYear()+543}`;
+}
+
+function renderCalendar(){
+calendar.innerHTML="";
+let y=currentDate.getFullYear();
+let m=currentDate.getMonth();
+
+monthYear.innerText=thaiMonths[m]+" "+(y+543);
+
+for(let i=1;i<=new Date(y,m+1,0).getDate();i++){
+let d=new Date(y,m,i);
+
+let box=document.createElement("div");
+box.className="day";
+
+if(d.getDay()==0) box.classList.add("saturday");
+
+box.innerHTML=`
+<div class="day-name">${thaiDays[d.getDay()]}</div>
+<div class="date">${i}</div>`;
+
+let key=y+"-"+m+"-"+i;
+
+box.onclick=()=>{
+selectedKey=key;
+selectedDay=box;
+openPopup();
+};
+
+calendar.appendChild(box);
+}
+renderDots();
+renderToday();
+}
+
+function changeMonth(x){
+currentDate.setMonth(currentDate.getMonth()+x);
+renderCalendar();
+}
+
+function openPopup(){
+document.getElementById("popup").style.display="flex";
+tempData=data[selectedKey]||{events:[]};
+
+noteInput.value=tempData.note||"";
+renderEvents();
+}
+
+function closePopup(){
+document.getElementById("popup").style.display="none";
+}
+
+function addEvent(){
+tempData.events=tempData.events||[];
+tempData.events.push({
+text:eventText.value,
+color:eventColor.value
+});
+eventText.value="";
+renderEvents();
+}
+
+function renderEvents(){
+eventList.innerHTML="";
+(tempData.events||[]).forEach((e,i)=>{
+eventList.innerHTML+=`
+<div>
+<span style="color:${e.color}">●</span> ${e.text}
+<button onclick="del(${i})">ลบ</button>
+</div>`;
+});
+}
+
+function del(i){
+tempData.events.splice(i,1);
+renderEvents();
+}
+
+function saveAll(){
+tempData.note=noteInput.value;
+data[selectedKey]=tempData;
+localStorage.setItem("plannerData",JSON.stringify(data));
+closePopup();
+renderCalendar();
+}
+
+function renderDots(){
+document.querySelectorAll(".day").forEach((d,i)=>{
+let key=currentDate.getFullYear()+"-"+currentDate.getMonth()+"-"+d.querySelector(".date").innerText;
+
+let box=document.createElement("div");
+box.className="dots";
+
+(d.querySelector(".dots")||box).innerHTML="";
+
+(data[key]?.events||[]).forEach(e=>{
+let el=document.createElement("div");
+el.className="event-box";
+el.style.background=e.color;
+el.innerText=e.text;
+box.appendChild(el);
+});
+
+if(!d.querySelector(".dots")) d.appendChild(box);
+});
+}
+
+renderCalendar();
+</script>
+
+<script>
+if("serviceWorker" in navigator){
+navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>
