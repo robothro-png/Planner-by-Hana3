@@ -46,7 +46,7 @@ body{
   overflow:hidden;
 }
 
-/* 🔥 FIX IMAGE LAYER */
+/* IMAGE FIX LAYER */
 .bg-img{
   position:absolute;
   inset:0;
@@ -117,10 +117,12 @@ body{
 <!-- HEADER -->
 <div class="header">
   <button onclick="changeMonth(-1)">◀</button>
+
   <div style="text-align:center;">
     <div id="monthYear"></div>
     <div id="todayDate" style="font-size:14px;"></div>
   </div>
+
   <button onclick="changeMonth(1)">▶</button>
 </div>
 
@@ -212,7 +214,7 @@ openPopup();
 
 calendar.appendChild(box);
 
-/* 🔥 FIX IMAGE */
+/* 🔥 IMAGE FIX */
 if(data[key]?.img){
 let img=document.createElement("img");
 img.className="bg-img";
@@ -236,6 +238,7 @@ renderCalendar();
 /* POPUP */
 function openPopup(){
 document.getElementById("popup").style.display="flex";
+
 tempData=JSON.parse(JSON.stringify(data[selectedKey]||{events:[]}));
 
 noteInput.value=tempData.note||"";
@@ -250,30 +253,38 @@ function closePopup(){
 document.getElementById("popup").style.display="none";
 }
 
-/* IMAGE */
+/* IMAGE UPLOAD (FIX สำคัญ) */
 imgInput.onchange=e=>{
 let file=e.target.files[0];
 if(!file)return;
 
 let reader=new FileReader();
 reader.onload=ev=>{
+
+// 🔥 SAVE เข้า data ทันที
 tempData.img=ev.target.result;
+data[selectedKey]=tempData;
+
 applyImage();
+renderCalendar(); // 🔥 refresh หน้าแรกทันที
 };
+
 reader.readAsDataURL(file);
 };
 
+/* APPLY IMAGE */
 function applyImage(){
 if(!selectedDay) return;
 
 let img=selectedDay.querySelector("img");
+
 if(!img){
 img=document.createElement("img");
 img.className="bg-img";
 selectedDay.prepend(img);
 }
 
-img.src=tempData.img||"";
+img.src=tempData.img || data[selectedKey]?.img || "";
 img.style.filter=`blur(${tempData.blur||0}px)`;
 img.style.opacity=tempData.opacity||1;
 }
@@ -312,6 +323,8 @@ renderEvents();
 /* SAVE */
 function saveAll(){
 tempData.note=noteInput.value;
+
+// 🔥 IMPORTANT SAVE
 data[selectedKey]=tempData;
 localStorage.setItem("plannerData",JSON.stringify(data));
 
@@ -326,7 +339,6 @@ let date=d.querySelector(".date").innerText;
 let key=currentDate.getFullYear()+"-"+currentDate.getMonth()+"-"+date;
 
 let c=d.querySelector(".dots");
-
 c.innerHTML="";
 
 (data[key]?.events||[]).forEach(e=>{
