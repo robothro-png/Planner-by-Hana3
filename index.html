@@ -8,13 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Itim&display=swap" rel="stylesheet">
 
 <style>
-body{
-  margin:0;
-  font-family:'Itim';
-  background:#f9f9f9;
-}
+body{margin:0;font-family:'Itim';background:#f9f9f9;}
 
-/* HEADER */
 .header{
   display:flex;
   justify-content:space-between;
@@ -30,7 +25,6 @@ body{
   padding:6px 10px;
 }
 
-/* CALENDAR */
 .calendar{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -46,7 +40,7 @@ body{
   overflow:hidden;
 }
 
-/* IMAGE FIX LAYER */
+/* IMAGE */
 .bg-img{
   position:absolute;
   inset:0;
@@ -56,10 +50,7 @@ body{
   z-index:0;
 }
 
-.day-name,.date,.dots{
-  position:relative;
-  z-index:2;
-}
+.day-name,.date,.dots{position:relative;z-index:2;}
 
 .date{
   position:absolute;
@@ -76,9 +67,6 @@ body{
   font-weight:bold;
 }
 
-.saturday .date{color:#8B0000;}
-
-/* EVENTS */
 .dots{
   position:absolute;
   bottom:5px;
@@ -94,9 +82,6 @@ body{
   padding:2px 6px;
   border-radius:8px;
   color:#fff;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
 }
 
 /* POPUP */
@@ -107,22 +92,15 @@ body{
   display:none;
   justify-content:center;
   align-items:center;
-  z-index:999;
 }
 </style>
 </head>
 
 <body>
 
-<!-- HEADER -->
 <div class="header">
   <button onclick="changeMonth(-1)">◀</button>
-
-  <div style="text-align:center;">
-    <div id="monthYear"></div>
-    <div id="todayDate" style="font-size:14px;"></div>
-  </div>
-
+  <div id="monthYear"></div>
   <button onclick="changeMonth(1)">▶</button>
 </div>
 
@@ -136,23 +114,6 @@ body{
 
 <input type="file" id="imgInput"><br><br>
 
-เบลอ <input type="range" id="blurRange" min="0" max="10"><br>
-โปร่ง <input type="range" id="opacityRange" min="0" max="1" step="0.1">
-
-<hr>
-
-<input id="eventText" placeholder="เพิ่มนัดหมาย">
-<select id="eventColor">
-<option value="red">แดง</option>
-<option value="orange">ส้ม</option>
-<option value="green">เขียว</option>
-</select>
-<button onclick="addEvent()">เพิ่ม</button>
-
-<div id="eventList"></div>
-
-<hr>
-
 <textarea id="noteInput" placeholder="โน้ต..."></textarea>
 
 <br><br>
@@ -165,23 +126,15 @@ body{
 <script>
 const calendar=document.getElementById("calendar");
 const monthYear=document.getElementById("monthYear");
-const todayDate=document.getElementById("todayDate");
 
 let currentDate=new Date();
 let selectedKey="";
 let selectedDay=null;
 
 let data=JSON.parse(localStorage.getItem("plannerData")||"{}");
-let tempData={};
 
 const thaiDays=["อา","จ","อ","พ","พฤ","ศ","ส"];
 const thaiMonths=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-
-/* TODAY */
-function renderToday(){
-let t=new Date();
-todayDate.innerText=`วันนี้ ${t.getDate()} ${thaiMonths[t.getMonth()]} ${t.getFullYear()+543}`;
-}
 
 /* CALENDAR */
 function renderCalendar(){
@@ -192,16 +145,13 @@ let m=currentDate.getMonth();
 monthYear.innerText=thaiMonths[m]+" "+(y+543);
 
 for(let i=1;i<=new Date(y,m+1,0).getDate();i++){
-let d=new Date(y,m,i);
 let key=y+"-"+m+"-"+i;
 
 let box=document.createElement("div");
 box.className="day";
 
-if(d.getDay()==6) box.classList.add("saturday");
-
 box.innerHTML=`
-<div class="day-name">${thaiDays[d.getDay()]}</div>
+<div class="day-name">${thaiDays[new Date(y,m,i).getDay()]}</div>
 <div class="date">${i}</div>
 <div class="dots"></div>
 `;
@@ -214,22 +164,17 @@ openPopup();
 
 calendar.appendChild(box);
 
-/* 🔥 IMAGE FIX */
+/* IMAGE LOAD */
 if(data[key]?.img){
 let img=document.createElement("img");
 img.className="bg-img";
 img.src=data[key].img;
-img.style.filter=`blur(${data[key].blur||0}px)`;
-img.style.opacity=data[key].opacity||1;
 box.prepend(img);
 }
 }
-
-renderDots();
-renderToday();
 }
 
-/* CHANGE MONTH */
+/* MONTH */
 function changeMonth(x){
 currentDate.setMonth(currentDate.getMonth()+x);
 renderCalendar();
@@ -237,118 +182,44 @@ renderCalendar();
 
 /* POPUP */
 function openPopup(){
-document.getElementById("popup").style.display="flex";
+popup.style.display="flex";
 
-tempData=JSON.parse(JSON.stringify(data[selectedKey]||{events:[]}));
-
-noteInput.value=tempData.note||"";
-blurRange.value=tempData.blur||0;
-opacityRange.value=tempData.opacity||1;
-
-renderEvents();
-applyImage();
+noteInput.value=data[selectedKey]?.note||"";
 }
 
+/* CLOSE */
 function closePopup(){
-document.getElementById("popup").style.display="none";
+popup.style.display="none";
 }
 
-/* IMAGE UPLOAD (FIX สำคัญ) */
+/* IMAGE UPLOAD FIX */
 imgInput.onchange=e=>{
 let file=e.target.files[0];
-if(!file)return;
+if(!file) return;
 
 let reader=new FileReader();
 reader.onload=ev=>{
 
-// 🔥 SAVE เข้า data ทันที
-tempData.img=ev.target.result;
-data[selectedKey]=tempData;
+// 🔥 FIX: บันทึกเฉพาะ key นี้ ไม่ทับทั้ง data
+if(!data[selectedKey]) data[selectedKey]={};
+data[selectedKey].img=ev.target.result;
 
-applyImage();
-renderCalendar(); // 🔥 refresh หน้าแรกทันที
+renderCalendar();
 };
 
 reader.readAsDataURL(file);
 };
 
-/* APPLY IMAGE */
-function applyImage(){
-if(!selectedDay) return;
-
-let img=selectedDay.querySelector("img");
-
-if(!img){
-img=document.createElement("img");
-img.className="bg-img";
-selectedDay.prepend(img);
-}
-
-img.src=tempData.img || data[selectedKey]?.img || "";
-img.style.filter=`blur(${tempData.blur||0}px)`;
-img.style.opacity=tempData.opacity||1;
-}
-
-/* SLIDERS */
-blurRange.oninput=()=>{tempData.blur=blurRange.value;applyImage();}
-opacityRange.oninput=()=>{tempData.opacity=opacityRange.value;applyImage();}
-
-/* EVENTS */
-function addEvent(){
-tempData.events=tempData.events||[];
-tempData.events.push({
-text:eventText.value,
-color:eventColor.value
-});
-eventText.value="";
-renderEvents();
-}
-
-function renderEvents(){
-eventList.innerHTML="";
-(tempData.events||[]).forEach((e,i)=>{
-eventList.innerHTML+=`
-<div>
-<span style="color:${e.color}">●</span> ${e.text}
-<button onclick="del(${i})">ลบ</button>
-</div>`;
-});
-}
-
-function del(i){
-tempData.events.splice(i,1);
-renderEvents();
-}
-
 /* SAVE */
 function saveAll(){
-tempData.note=noteInput.value;
+if(!data[selectedKey]) data[selectedKey]={};
 
-// 🔥 IMPORTANT SAVE
-data[selectedKey]=tempData;
+data[selectedKey].note=noteInput.value;
+
 localStorage.setItem("plannerData",JSON.stringify(data));
 
 renderCalendar();
 closePopup();
-}
-
-/* DOTS */
-function renderDots(){
-document.querySelectorAll(".day").forEach(d=>{
-let date=d.querySelector(".date").innerText;
-let key=currentDate.getFullYear()+"-"+currentDate.getMonth()+"-"+date;
-
-let c=d.querySelector(".dots");
-c.innerHTML="";
-
-(data[key]?.events||[]).forEach(e=>{
-let el=document.createElement("div");
-el.className="event-box";
-el.style.background=e.color;
-el.innerText=e.text;
-c.appendChild(el);
-});
-});
 }
 
 renderCalendar();
