@@ -13,16 +13,8 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
 .header{
   display:flex;
   justify-content:space-between;
-  align-items:center;
   padding:15px;
   background:#ffd6e0;
-}
-
-.header button{
-  border:none;
-  background:white;
-  border-radius:10px;
-  padding:6px 10px;
 }
 
 .calendar{
@@ -40,7 +32,7 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
   overflow:hidden;
 }
 
-/* IMAGE */
+/* IMAGE LAYER */
 .bg-img{
   position:absolute;
   inset:0;
@@ -50,7 +42,10 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
   z-index:0;
 }
 
-.day-name,.date,.dots{position:relative;z-index:2;}
+.day *{
+  position:relative;
+  z-index:2;
+}
 
 .date{
   position:absolute;
@@ -58,13 +53,6 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
   right:-10px;
   font-size:120px;
   color:#0002;
-}
-
-.day-name{
-  position:absolute;
-  top:8px;
-  left:10px;
-  font-weight:bold;
 }
 
 .dots{
@@ -84,7 +72,6 @@ body{margin:0;font-family:'Itim';background:#f9f9f9;}
   color:#fff;
 }
 
-/* POPUP */
 #popup{
   position:fixed;
   inset:0;
@@ -129,42 +116,48 @@ const monthYear=document.getElementById("monthYear");
 
 let currentDate=new Date();
 let selectedKey="";
-let selectedDay=null;
-
 let data=JSON.parse(localStorage.getItem("plannerData")||"{}");
 
 const thaiDays=["อา","จ","อ","พ","พฤ","ศ","ส"];
 const thaiMonths=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 
+/* 🔥 FIX KEY FUNCTION */
+function makeKey(y,m,d){
+return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
 /* CALENDAR */
 function renderCalendar(){
 calendar.innerHTML="";
+
 let y=currentDate.getFullYear();
 let m=currentDate.getMonth();
 
 monthYear.innerText=thaiMonths[m]+" "+(y+543);
 
-for(let i=1;i<=new Date(y,m+1,0).getDate();i++){
-let key=y+"-"+m+"-"+i;
+let lastDay=new Date(y,m+1,0).getDate();
+
+for(let i=1;i<=lastDay;i++){
+
+let key=makeKey(y,m,i);
 
 let box=document.createElement("div");
 box.className="day";
 
 box.innerHTML=`
-<div class="day-name">${thaiDays[new Date(y,m,i).getDay()]}</div>
+<div>${thaiDays[new Date(y,m,i).getDay()]}</div>
 <div class="date">${i}</div>
 <div class="dots"></div>
 `;
 
 box.onclick=()=>{
 selectedKey=key;
-selectedDay=box;
 openPopup();
 };
 
 calendar.appendChild(box);
 
-/* IMAGE LOAD */
+/* 🔥 IMAGE FIX (ชัวร์สุด) */
 if(data[key]?.img){
 let img=document.createElement("img");
 img.className="bg-img";
@@ -192,17 +185,19 @@ function closePopup(){
 popup.style.display="none";
 }
 
-/* IMAGE UPLOAD FIX */
+/* IMAGE UPLOAD 🔥 FIX 100% */
 imgInput.onchange=e=>{
 let file=e.target.files[0];
-if(!file) return;
+if(!file)return;
 
 let reader=new FileReader();
 reader.onload=ev=>{
 
-// 🔥 FIX: บันทึกเฉพาะ key นี้ ไม่ทับทั้ง data
 if(!data[selectedKey]) data[selectedKey]={};
+
 data[selectedKey].img=ev.target.result;
+
+localStorage.setItem("plannerData",JSON.stringify(data));
 
 renderCalendar();
 };
